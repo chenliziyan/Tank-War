@@ -1,9 +1,10 @@
 # map.py
-# (版本 5 - 封死了顶部和底部的出口)
 
-import settings as s
+import settings as s 
+# Use the settings to different tile in settings.py
 
-# 这是一个 26x26 的地图
+# 26*26 map --> easy to change afterwards
+# 2 --> steel wall, 0 --> empty, 1 --> red wall, 3 --> leaf wall, 5 --> boss wall
 MAP_DATA = [
     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
     [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
@@ -30,10 +31,8 @@ MAP_DATA = [
     [2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 2],
     [2, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1, 0, 2],
     [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
-    # --- (这是你的修复) ---
     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
 ]
-
-# 玩家出生点
+# here you can change the position of players' spawn points
 PLAYER1_SPAWN = (9, 24)
 PLAYER2_SPAWN = (16, 24)
