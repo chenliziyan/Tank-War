@@ -1,13 +1,12 @@
 # sprites.py
-# (版本 13 - 实现了玩家重生(vs Enemy)和秒杀(vs Player)逻辑)
+# for all changable elements
 
 import pygame
 import os
 import random
 import settings as s
 
-# --- 辅助函数 (无改动) ---
-
+#load resources
 def load_image(filename):
     path = os.path.join(s.IMAGE_DIR, filename)
     try:
@@ -31,30 +30,31 @@ def load_sound(filename):
         sound = pygame.mixer.Sound(buffer=b'') 
     return sound
 
+#for UI
 def draw_text(surface, text, size, x, y, color, font_name):
     font = pygame.font.Font(font_name, size)
-    text_surface = font.render(text, True, color)
+    text_surface = font.render(text, True, color) # True is for MSAA
     text_rect = text_surface.get_rect()
-    text_rect.midtop = (x, y)
+    text_rect.midtop = (x, y) # position of text
     surface.blit(text_surface, text_rect)
 
+#draw health bar of players' tanks
 def draw_health_bar(surface, x, y, hp, max_hp):
     if hp < 0: hp = 0
     BAR_LENGTH = s.TILE_SIZE
     BAR_HEIGHT = 7
-    fill_pct = (hp / max_hp) * BAR_LENGTH
+    fill_pct = (hp / max_hp) * BAR_LENGTH 
     outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
     fill_rect = pygame.Rect(x, y, fill_pct, BAR_HEIGHT)
-    if fill_pct > BAR_LENGTH * 0.6: fill_color = s.GREEN
+    if fill_pct > BAR_LENGTH * 0.6: fill_color = s.GREEN # when hp > 1  bar is green
     elif fill_pct > BAR_LENGTH * 0.3: fill_color = s.YELLOW
     else: fill_color = s.RED
-    pygame.draw.rect(surface, s.BLACK, outline_rect)
+    pygame.draw.rect(surface, s.BLACK, outline_rect) #fill the bar outline
     pygame.draw.rect(surface, fill_color, fill_rect)
     pygame.draw.rect(surface, s.WHITE, outline_rect, 1)
 
-# ----------------------------------------
-# 1. 墙壁 (Wall) 和 树叶 (Bush) 类 (无改动)
-# ----------------------------------------
+
+# class wall (3 other walls + leaf wall)
 class Wall(pygame.sprite.Sprite):
     def __init__(self, x, y, wall_type):
         pygame.sprite.Sprite.__init__(self)
@@ -67,7 +67,7 @@ class Wall(pygame.sprite.Sprite):
             self.image = load_image(s.IMG_BOSS); self.health = 1
         self.rect = self.image.get_rect()
         self.rect.topleft = (x * s.TILE_SIZE, y * s.TILE_SIZE)
-
+# this is specifically for leaf wall
 class Bush(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -75,9 +75,7 @@ class Bush(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (x * s.TILE_SIZE, y * s.TILE_SIZE)
 
-# ----------------------------------------
-# 2. 子弹 (Bullet) 类 (无改动)
-# ----------------------------------------
+# class of bullet
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction, owner):
         pygame.sprite.Sprite.__init__(self)
@@ -88,7 +86,7 @@ class Bullet(pygame.sprite.Sprite):
         self.owner = owner
         self.direction = direction
         self.speed = s.BULLET_SPEED
-        if self.direction == 'UP':
+        if self.direction == 'UP': # direction of bullet is determined by tank's direction
             self.rect.centerx = x; self.rect.bottom = y
         elif self.direction == 'DOWN':
             self.rect.centerx = x; self.rect.top = y
@@ -105,9 +103,7 @@ class Bullet(pygame.sprite.Sprite):
         if not pygame.Rect(0, 0, s.SCREEN_WIDTH, s.SCREEN_HEIGHT).colliderect(self.rect):
             self.kill()
 
-# ----------------------------------------
-# 3. 坦克 (Tank) - 基类 (已修改)
-# ----------------------------------------
+# base class of tank (herotank and enemytank class belong to this)
 class Tank(pygame.sprite.Sprite):
     def __init__(self, x, y, initial_image_surface, hp):
         pygame.sprite.Sprite.__init__(self)
@@ -145,16 +141,14 @@ class Tank(pygame.sprite.Sprite):
             self.vel.x = 0
             self.vel.y = 0
             
-    def take_damage(self, amount, owner):
-        """(新) take_damage 现在需要一个 owner"""
+    def take_damage(self, amount, owner): # owner here is to check who shoot
+        # if enemy kills player, player can respawn. If player kills player, player killed loses.
         self.hp -= amount
         if self.hp <= 0:
             self.kill()
         return None
 
-# ----------------------------------------
-# 4. 玩家坦克 (HeroTank) 类 (已修改)
-# ----------------------------------------
+# class of players' tank
 class HeroTank(Tank):
     def __init__(self, x, y, player_num, game):
         self.player_num = player_num
@@ -175,7 +169,6 @@ class HeroTank(Tank):
         self.shoot_cooldown = s.BULLET_COOLDOWN
         self.score = 0
         
-        # (新) 记住出生点 (图块坐标)
         self.spawn_x_tile = x
         self.spawn_y_tile = y
         
@@ -218,7 +211,7 @@ class HeroTank(Tank):
         self.hp = min(s.PLAYER_HP, self.hp + amount)
         
     def respawn(self):
-        """(新) 玩家重生方法"""
+        # for player to respawn
         print(f"Player {self.player_num} respawned!")
         self.hp = s.PLAYER_HP
         self.rect.topleft = (self.spawn_x_tile * s.TILE_SIZE, self.spawn_y_tile * s.TILE_SIZE)
@@ -226,33 +219,29 @@ class HeroTank(Tank):
         self.image = self.images['UP']
         
     def take_damage(self, amount, owner):
-        """(新) 重写 take_damage 以实现新逻辑"""
-        if not self.alive(): # 防止 "已死" 坦克再次中弹
+        if not self.alive(): 
             return
             
         self.hp -= amount
         
         if self.hp <= 0:
-            # 检查是被谁击杀的
-            if owner == 'Enemy':
-                # 被敌人击杀：重生
+            if owner == 'Enemy': # killed by enemy tanks
                 self.game.sound_bang_player.play()
                 self.respawn()
             else:
-                # 被其他玩家 (P1 or P2) 击杀：游戏结束
+                # killed by hero tank
                 print(f"Player {self.player_num} was killed by {owner}!")
                 self.game.sound_bang_player.play()
                 self.game.game_over = True
                 self.game.playing = False
-                self.game.winner = owner # 'owner' 是击杀者 (e.g., 'P1')
-                self.kill() # 玩家死亡
+                self.game.winner = owner
+                self.kill()
 
     def draw_ui(self, surface):
-        draw_health_bar(surface, self.rect.x, self.rect.y - 10, self.hp, s.PLAYER_HP)
+        draw_health_bar(surface, self.rect.x, self.rect.y - 10, self.hp, s.PLAYER_HP) #only hero tanks have HP bar
 
-# ----------------------------------------
-# 5. 敌人坦克 (EnemyTank) 类 (无改动)
-# ----------------------------------------
+# class of enemy tank
+# most logic is same as hero tank
 class EnemyTank(Tank):
     def __init__(self, x, y, game):
         self.game = game
@@ -283,7 +272,7 @@ class EnemyTank(Tank):
         self.ai_shoot()
         super().update(walls_group)
 
-    def ai_move(self):
+    def ai_move(self): # randomly moving of enemy tanks
         now = pygame.time.get_ticks()
         if now - self.move_timer > self.move_cooldown:
             self.move_timer = now
@@ -292,7 +281,7 @@ class EnemyTank(Tank):
             self.image = self.images[self.direction]
             self.speed = s.ENEMY_SPEED 
 
-    def ai_shoot(self):
+    def ai_shoot(self): # randomly shooting of enemy tanks
         now = pygame.time.get_ticks()
         if now - self.shoot_timer > self.shoot_cooldown:
             self.shoot_timer = now
@@ -315,4 +304,5 @@ class EnemyTank(Tank):
             self.images['LEFT'] = load_image(s.IMG_ENEMY_WHITE_LEFT)
             self.images['RIGHT'] = load_image(s.IMG_ENEMY_WHITE_RIGHT)
             self.image = self.images[self.direction]
+
         return None
