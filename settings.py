@@ -3,7 +3,7 @@
 import pygame
 import os
 
-# --- 屏幕和显示设置 ---
+# display settings
 TITLE = "Tank War"
 TILE_SIZE = 32
 MAP_WIDTH_TILES = 26
@@ -90,3 +90,4 @@ P2_LEFT = pygame.K_LEFT
 P2_RIGHT = pygame.K_RIGHT
 
 P2_SHOOT = pygame.K_RETURN
+
